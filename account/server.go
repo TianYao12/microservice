@@ -2,7 +2,10 @@ package account
 
 import (
 	"context"
+	"fmt"
+	"net"
 
+	"github.com/TianYao/microservice/account/pb"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -11,12 +14,12 @@ type grpcServer struct {
 }
 
 func listenGRPC(s Service, port int) error {
-	lis, err : net.Listen("tcp", fmt.Sprintf(":%d", port))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return err
 	}
 	serv := grpc.NewServer()
-	pb.(serv,)
+	pb.RegisterAccountSergiceServer(serv, &grpcServer{s})
 	reflection.Register(serv)
 	return serv.Serve(lis)
 }
