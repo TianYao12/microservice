@@ -1,6 +1,6 @@
 syntax = "proto3";
 package pb;
-option go_package = "github.com/TianYao/microservice/account/pb";
+option go_package = "github.com/TianYao12/microservice/account/pb";
 
 message Account {
     string id = 1;
