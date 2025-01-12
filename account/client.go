@@ -7,39 +7,42 @@ import (
 	"google.golang.org/grpc"
 )
 
+// client for interacting with account service via grpc
 type Client struct {
-	conn *grpc.ClientConn
+	connection    *grpc.ClientConn
 	service pb.AccountServiceClient
 }
 
 func NewClient(url string) (*Client, error) {
-	conn, err := grpc.Dial(url, grpc.WithInsecure())
+	connection, err := grpc.Dial(url, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
-	c := pb.NewAccountServiceClient(conn)
-	return &Client{conn, c}, nil
+
+	service_client := pb.NewAccountServiceClient(connection)
+	return &Client{connection, service_client}, nil
 }
 
-func (c *Client) Close() {
-	c.conn.Close()
+func (client *Client) Close() {
+	client.connection.Close()
 }
 
-func (c *Client) PostAccount(ctx context.Context, name string) (*Account, error) {
-	r, err := c.service.PostAccount(
-		ctx, &pb.PostAccountRequest{Name: name},
+func (client *Client) PostAccount(context context.Context, name string) (*Account, error) {
+	response, err := client.service.PostAccount(
+		context,
+		&pb.PostAccountRequest{Name: name},
 	)
 	if err != nil {
 		return nil, err
 	}
 	return &Account{
-		ID: r.Account.Id,
-		Name: r.Account.Name,
+		ID:   response.Account.Id,
+		Name: response.Account.Name,
 	}, nil
 }
 
-func (c *Client) GetAccount(ctx context.Context, id string) (*Account, error) {
-	r, err := c.service.GetAccount (
+func (client *Client) GetAccount(ctx context.Context, id string) (*Account, error) {
+	r, err := client.service.GetAccount(
 		ctx,
 		&pb.GetAccountRequest{Id: id},
 	)
@@ -47,27 +50,28 @@ func (c *Client) GetAccount(ctx context.Context, id string) (*Account, error) {
 		return nil, err
 	}
 	return &Account{
-		ID: r.Account.Id,
+		ID:   r.Account.Id,
 		Name: r.Account.Name,
 	}, nil
 }
 
-func (c *Client) GetAccounts(ctx context.Context, skip uint64, take uint64) ([]Account, error) {
-	r, err := c.service.GetAccounts(
-		ctx, *pb.GetAccountRequest{
-			skip: skip,
+func (client *Client) GetAccounts(ctx context.Context, skip uint64, take uint64) ([]Account, error) {
+	r, err := client.service.GetAccounts(
+		ctx,
+		&pb.GetAccountsRequest{
+			Skip: skip,
 			Take: take,
-		}
-	)	
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
 	accounts := []Account{}
-	for _, a := range r.Accounts{
+	for _, a := range r.Accounts {
 		accounts = append(accounts, Account{
-			ID: a.ID,
-			Name: a.Name
-		}),
+			ID:   a.Id,
+			Name: a.Name,
+		})
 	}
 	return accounts, nil
 }

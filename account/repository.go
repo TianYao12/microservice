@@ -10,11 +10,11 @@ import (
 type Repository interface {
 	Close()
 	PutAccount(ctx context.Context, a Account) error
-	GetAccountByID(ctx context.Context, id string) (A)
+	GetAccountByID(ctx context.Context, id string) (*Account, error)
 	ListAccounts(ctx context.Context, skip uint64, take uint64) ([]Account, error)
 }
 
-type postgresRepository struct{
+type postgresRepository struct {
 	db *sql.DB
 }
 
@@ -34,7 +34,7 @@ func (r *postgresRepository) Close() {
 	r.db.Close()
 }
 
-func (r *postgresRepository) Ping() err {
+func (r *postgresRepository) Ping() error {
 	return r.db.Ping()
 }
 
@@ -44,8 +44,8 @@ func (r *postgresRepository) PutAccount(ctx context.Context, a Account) error {
 }
 
 func (r *postgresRepository) GetAccountByID(ctx context.Context, id string) (*Account, error) {
-	r.db.QueryRowContext(ctx, "SELECT id, name FROM account WHERE id = $1", id)
-	a := Account{}
+	row := r.db.QueryRowContext(ctx, "SELECT id, name FROM accounts WHERE id = $1", id)
+	a := &Account{}
 	if err := row.Scan(&a.ID, &a.Name); err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (r *postgresRepository) GetAccountByID(ctx context.Context, id string) (*Ac
 
 func (r *postgresRepository) ListAccounts(ctx context.Context, skip uint64, take uint64) ([]Account, error) {
 	rows, err := r.db.QueryContext(
-		ctx, 
+		ctx,
 		"SELECT id, name FROM accounts ORDER BY id DESC OFFSET $1 LIMIT $2",
 		skip,
 		take,
@@ -65,7 +65,6 @@ func (r *postgresRepository) ListAccounts(ctx context.Context, skip uint64, take
 	defer rows.Close()
 
 	accounts := []Account{}
-
 	for rows.Next() {
 		a := &Account{}
 		if err = rows.Scan(&a.ID, &a.Name); err == nil {
