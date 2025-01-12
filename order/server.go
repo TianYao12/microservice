@@ -16,40 +16,43 @@ import (
 )
 
 type grpcServer struct {
+	pb.UnimplementedOrderServiceServer
 	service       Service
 	accountClient *account.Client
 	catalogClient *catalog.Client
 }
 
 func ListenGRPC(s Service, accountURL, catalogURL string, port int) error {
-	accountClient, err := account.NewClient(accountURL)
-	if err != nil {
-		return err
-	}
+    accountClient, err := account.NewClient(accountURL)
+    if err != nil {
+        return err
+    }
 
-	catalogClient, err := catalog.NewClient(catalogURL)
-	if err != nil {
-		accountClient.Close()
-		return err
-	}
+    catalogClient, err := catalog.NewClient(catalogURL)
+    if err != nil {
+        accountClient.Close()
+        return err
+    }
 
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-	if err != nil {
-		accountClient.Close()
-		catalogClient.Close()
-		return err
-	}
+    lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+    if err != nil {
+        accountClient.Close()
+        catalogClient.Close()
+        return err
+    }
 
-	serv := grpc.NewServer()
-	pb.RegisterOrderServiceServer(serv, &grpcServer{
-		s,
-		accountClient,
-		catalogClient,
-	})
-	reflection.Register(serv)
+    serv := grpc.NewServer()
+    pb.RegisterOrderServiceServer(serv, &grpcServer{
+        UnimplementedOrderServiceServer: pb.UnimplementedOrderServiceServer{},
+        service:                         s,
+        accountClient:                   accountClient,
+        catalogClient:                   catalogClient,
+    })
+    reflection.Register(serv)
 
-	return serv.Serve(lis)
+    return serv.Serve(lis)
 }
+
 
 func (s *grpcServer) PostOrder(
 	ctx context.Context,
